@@ -23,6 +23,8 @@ StandaloneInputMethodHost::StandaloneInputMethodHost(MInputContextConnection *co
     , mConnection(connection)
     , mWindowGroup(windowGroup)
 {
+    connect(mWindowGroup, &WindowGroup::inputMethodAreaChanged,
+            mConnection, &MInputContextConnection::updateInputMethodArea);
 }
 
 bool StandaloneInputMethodHost::hiddenText(bool &valid)
@@ -155,7 +157,7 @@ void StandaloneInputMethodHost::setScreenRegion(const QRegion &region, QWindow *
 
 void StandaloneInputMethodHost::setInputMethodArea(const QRegion &region, QWindow *window)
 {
-    mWindowGroup->setScreenRegion(region, window);
+    mWindowGroup->setInputMethodArea(region, window);
 }
 
 void StandaloneInputMethodHost::setSelection(int start, int length)

@@ -527,6 +527,7 @@ if(enable-tests)
     endfunction()
 
     create_test(sanitychecks)
+    create_test(ut_standaloneinputmethodarea)
     create_test(ut_mattributeextensionmanager)
     create_test(ut_mimonscreenplugins)
     create_test(ut_mimpluginmanager ${DUMMY_PLUGINS})
