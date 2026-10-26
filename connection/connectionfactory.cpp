@@ -18,6 +18,7 @@
 
 #ifdef HAVE_WAYLAND
 #include "waylandinputmethodconnection.h"
+#include "hybridinputcontextconnection.h"
 #endif
 
 namespace Maliit {
@@ -42,6 +43,12 @@ MInputContextConnection *createInputContextConnectionWithFixedAddress(const QStr
 MInputContextConnection *createWestonIMProtocolConnection()
 {
     return new WaylandInputMethodConnection;
+}
+
+MInputContextConnection *createHybridDBusWaylandConnection()
+{
+    QSharedPointer<Maliit::Server::DBus::Address> address(new Maliit::Server::DBus::DynamicAddress);
+    return new HybridInputContextConnection(address);
 }
 #endif
 

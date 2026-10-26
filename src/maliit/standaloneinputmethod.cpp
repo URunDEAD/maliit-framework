@@ -131,6 +131,13 @@ std::unique_ptr<MInputContextConnection> createConnection()
 {
 #ifdef HAVE_WAYLAND
     auto forceDbus = qgetenv("MALIIT_FORCE_DBUS_CONNECTION");
+    // MALIIT_HYBRID_CONNECTION=1 keeps the D-Bus server (Qt5 Maliit
+    // input-context clients) and also binds zwp_input_method_v1, so the
+    // compositor can route text-input v1/v2/v3 clients to this keyboard.
+    auto hybrid = qgetenv("MALIIT_HYBRID_CONNECTION");
+    if (QGuiApplication::platformName().startsWith("wayland") && !hybrid.isEmpty() && hybrid != "0") {
+        return std::unique_ptr<MInputContextConnection>(Maliit::createHybridDBusWaylandConnection());
+    }
     if (QGuiApplication::platformName().startsWith("wayland") && (forceDbus.isEmpty() || forceDbus == "0")) {
         return std::unique_ptr<MInputContextConnection>(Maliit::createWestonIMProtocolConnection());
     } else

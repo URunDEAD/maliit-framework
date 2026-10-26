@@ -28,6 +28,8 @@ MInputContextConnection *createInputContextConnectionWithFixedAddress(const QStr
 
 #ifdef HAVE_WAYLAND
 MInputContextConnection *createWestonIMProtocolConnection();
+//! D-Bus (dynamic address) and zwp_input_method_v1 in one connection.
+MInputContextConnection *createHybridDBusWaylandConnection();
 #endif
 
 } // namespace Maliit

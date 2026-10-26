@@ -378,6 +378,9 @@ public:
     void handleDisconnection(unsigned int connectionId);
 
 private:
+    // The Wayland input-method bridge reads the state of the connection it feeds.
+    friend class WaylandInputMethodConnection;
+
     /*!
      * \brief get the X window id of the active app window. Warning: Undefined on non-X11 platforms
      */

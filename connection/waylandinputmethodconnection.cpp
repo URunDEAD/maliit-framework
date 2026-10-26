@@ -156,7 +156,9 @@ bool matchesFlag(int value,
     return ((value & flag) == flag);
 }
 
-const unsigned int wayland_connection_id(1);
+// Far above the D-Bus connection counter (which starts at 1), so a hybrid
+// connection can tell Wayland from D-Bus clients by the active connection id.
+const unsigned int wayland_connection_id(0x7ffffff0u);
 
 } // unnamed namespace
 
@@ -213,7 +215,8 @@ struct WaylandInputMethodConnectionPrivate
 {
     Q_DECLARE_PUBLIC(WaylandInputMethodConnection)
 
-    WaylandInputMethodConnectionPrivate(WaylandInputMethodConnection *connection);
+    WaylandInputMethodConnectionPrivate(WaylandInputMethodConnection *connection,
+                                        MInputContextConnection *inboundTarget);
     ~WaylandInputMethodConnectionPrivate();
 
     void handleRegistryGlobal(uint32_t name,
@@ -224,6 +227,7 @@ struct WaylandInputMethodConnectionPrivate
     Maliit::Wayland::InputMethodContext *context();
 
     WaylandInputMethodConnection *q_ptr;
+    MInputContextConnection *target;
     wl_display *display;
     wl_registry *registry;
     QScopedPointer<Maliit::Wayland::InputMethod> input_method;
@@ -263,8 +267,10 @@ const wl_registry_listener maliit_registry_listener = {
 
 } // unnamed namespace
 
-WaylandInputMethodConnectionPrivate::WaylandInputMethodConnectionPrivate(WaylandInputMethodConnection *connection)
+WaylandInputMethodConnectionPrivate::WaylandInputMethodConnectionPrivate(WaylandInputMethodConnection *connection,
+                                                                         MInputContextConnection *inboundTarget)
     : q_ptr(connection),
+      target(inboundTarget ? inboundTarget : connection),
       display(0),
       registry(0),
       input_method()
@@ -294,7 +300,8 @@ void WaylandInputMethodConnectionPrivate::handleRegistryGlobal(uint32_t name,
     Q_Q(WaylandInputMethodConnection);
 
     if (!strcmp(interface, "zwp_input_method_v1")) {
-        input_method.reset(new Maliit::Wayland::InputMethod(q, registry, name));
+        Q_UNUSED(q);
+        input_method.reset(new Maliit::Wayland::InputMethod(target, registry, name));
     }
 }
 
@@ -311,8 +318,24 @@ Maliit::Wayland::InputMethodContext *WaylandInputMethodConnectionPrivate::contex
 // MInputContextWestonIMProtocolConnection
 
 WaylandInputMethodConnection::WaylandInputMethodConnection()
-    : d_ptr(new WaylandInputMethodConnectionPrivate(this))
+    : d_ptr(new WaylandInputMethodConnectionPrivate(this, nullptr))
 {
+}
+
+WaylandInputMethodConnection::WaylandInputMethodConnection(MInputContextConnection *inboundTarget)
+    : d_ptr(new WaylandInputMethodConnectionPrivate(this, inboundTarget))
+{
+}
+
+unsigned int WaylandInputMethodConnection::waylandConnectionId()
+{
+    return wayland_connection_id;
+}
+
+bool WaylandInputMethodConnection::hasContext() const
+{
+    Q_D(const WaylandInputMethodConnection);
+    return d->input_method && d->input_method->context();
 }
 
 WaylandInputMethodConnection::~WaylandInputMethodConnection()
@@ -337,7 +360,7 @@ void WaylandInputMethodConnection::sendPreeditString(const QString &string,
                                                cursor_pos);
 
     if (replace_length > 0) {
-        int cursor = widgetState().value(CursorPositionAttribute).toInt();
+        int cursor = d->target->widgetState().value(CursorPositionAttribute).toInt();
         uint32_t index = string.midRef(qMin(cursor + replace_start, cursor), qAbs(replace_start)).toUtf8().size();
         uint32_t length = string.midRef(cursor + replace_start, replace_length).toUtf8().size();
         d->context()->delete_surrounding_text(index, length);
@@ -383,7 +406,7 @@ void WaylandInputMethodConnection::sendCommitString(const QString &string,
     }
 
     if (replace_length > 0) {
-        int cursor = widgetState().value(CursorPositionAttribute).toInt();
+        int cursor = d->target->widgetState().value(CursorPositionAttribute).toInt();
         uint32_t index = string.midRef(qMin(cursor + replace_start, cursor), qAbs(replace_start)).toUtf8().size();
         uint32_t length = string.midRef(cursor + replace_start, replace_length).toUtf8().size();
         d->context()->delete_surrounding_text(index, length);
@@ -442,7 +465,7 @@ QString WaylandInputMethodConnection::selection(bool &valid)
 
     qCDebug(lcWaylandConnection) << Q_FUNC_INFO;
 
-    Maliit::Wayland::InputMethodContext *context = d->input_method->context();
+    Maliit::Wayland::InputMethodContext *context = d->context();
 
     valid = context && !context->selection().isEmpty();
     return context ? context->selection() : QString();
@@ -469,7 +492,7 @@ void WaylandInputMethodConnection::setSelection(int start, int length)
     if (!d->context())
         return;
 
-    QString surrounding = widgetState().value(SurroundingTextAttribute).toString();
+    QString surrounding = d->target->widgetState().value(SurroundingTextAttribute).toString();
     uint32_t index(surrounding.leftRef(start + length).toUtf8().size());
     uint32_t anchor(surrounding.leftRef(start).toUtf8().size());
 

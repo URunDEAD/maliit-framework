@@ -35,6 +35,12 @@ class WaylandInputMethodConnection : public MInputContextConnection
 
 public:
     explicit WaylandInputMethodConnection();
+    /*! Forward inbound zwp_input_method_v1 events to \a inboundTarget
+     *  (with connection id waylandConnectionId()) instead of to this object,
+     *  so one server connection can serve D-Bus and Wayland clients. */
+    explicit WaylandInputMethodConnection(MInputContextConnection *inboundTarget);
+    static unsigned int waylandConnectionId();
+    bool hasContext() const;
     virtual ~WaylandInputMethodConnection();
 
     virtual void sendPreeditString(const QString &string,

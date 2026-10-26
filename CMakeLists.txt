@@ -83,7 +83,9 @@ set(CONNECTION_SOURCES
 if(enable-wayland)
     list(APPEND CONNECTION_SOURCES
          connection/waylandinputmethodconnection.cpp
-         connection/waylandinputmethodconnection.h)
+         connection/waylandinputmethodconnection.h
+         connection/hybridinputcontextconnection.cpp
+         connection/hybridinputcontextconnection.h)
 
     ecm_add_qtwayland_client_protocol(CONNECTION_SOURCES PROTOCOL ${WAYLANDPROTOCOLS_PATH}/unstable/input-method/input-method-unstable-v1.xml BASENAME input-method-unstable-v1)
 
